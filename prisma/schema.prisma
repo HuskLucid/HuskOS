@@ -1,0 +1,217 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// The auth.users table is managed by Supabase Auth. Profile.id references it 1:1.
+model Profile {
+  id          String   @id @db.Uuid
+  email       String   @unique
+  displayName String?  @map("display_name")
+  avatarUrl   String?  @map("avatar_url")
+  xp          Int      @default(0)
+  level       Int      @default(1)
+  streak      Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  settings       Settings?
+  subjects       Subject[]
+  tasks          Task[]
+  folders        Folder[]
+  notes          Note[]
+  habits         Habit[]
+  goals          Goal[]
+  studySessions  StudySession[]
+  calendarEvents CalendarEvent[]
+  resources      Resource[]
+  achievements   UserAchievement[]
+
+  @@map("profiles")
+}
+
+model Settings {
+  id           String  @id @default(uuid()) @db.Uuid
+  profileId    String  @unique @map("profile_id") @db.Uuid
+  theme        String  @default("system") // system | light | dark
+  accent       String  @default("violet")
+  wallpaper    String  @default("aurora")
+  pomodoroWork Int     @default(25) @map("pomodoro_work")
+  pomodoroBreak Int    @default(5) @map("pomodoro_break")
+  soundEnabled Boolean @default(true) @map("sound_enabled")
+  profile      Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("settings")
+}
+
+model Subject {
+  id        String   @id @default(uuid()) @db.Uuid
+  profileId String   @map("profile_id") @db.Uuid
+  name      String
+  color     String   @default("violet")
+  createdAt DateTime @default(now()) @map("created_at")
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+  notes     Note[]
+  sessions  StudySession[]
+
+  @@index([profileId])
+  @@map("subjects")
+}
+
+model Task {
+  id          String    @id @default(uuid()) @db.Uuid
+  profileId   String    @map("profile_id") @db.Uuid
+  subjectId   String?   @map("subject_id") @db.Uuid
+  title       String
+  notes       String?
+  status      String    @default("todo") // todo | doing | done
+  priority    String    @default("medium") // low | medium | high
+  dueDate     DateTime? @map("due_date")
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  profile     Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  subject     Subject?  @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+
+  @@index([profileId, status])
+  @@map("tasks")
+}
+
+model Folder {
+  id        String   @id @default(uuid()) @db.Uuid
+  profileId String   @map("profile_id") @db.Uuid
+  name      String
+  parentId  String?  @map("parent_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  notes     Note[]
+
+  @@index([profileId])
+  @@map("folders")
+}
+
+model Note {
+  id        String   @id @default(uuid()) @db.Uuid
+  profileId String   @map("profile_id") @db.Uuid
+  folderId  String?  @map("folder_id") @db.Uuid
+  subjectId String?  @map("subject_id") @db.Uuid
+  title     String
+  content   String   @default("") @db.Text // markdown
+  pinned    Boolean  @default(false)
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  folder    Folder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  subject   Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+
+  @@index([profileId])
+  @@map("notes")
+}
+
+model Habit {
+  id        String   @id @default(uuid()) @db.Uuid
+  profileId String   @map("profile_id") @db.Uuid
+  name      String
+  icon      String   @default("sparkles")
+  cadence   String   @default("daily")
+  createdAt DateTime @default(now()) @map("created_at")
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  logs      HabitLog[]
+
+  @@index([profileId])
+  @@map("habits")
+}
+
+model HabitLog {
+  id      String   @id @default(uuid()) @db.Uuid
+  habitId String   @map("habit_id") @db.Uuid
+  date    DateTime @db.Date
+  habit   Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  @@unique([habitId, date])
+  @@map("habit_logs")
+}
+
+model Goal {
+  id         String    @id @default(uuid()) @db.Uuid
+  profileId  String    @map("profile_id") @db.Uuid
+  title      String
+  target     Int       @default(100)
+  progress   Int       @default(0)
+  deadline   DateTime?
+  createdAt  DateTime  @default(now()) @map("created_at")
+  profile    Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@map("goals")
+}
+
+model StudySession {
+  id         String   @id @default(uuid()) @db.Uuid
+  profileId  String   @map("profile_id") @db.Uuid
+  subjectId  String?  @map("subject_id") @db.Uuid
+  kind       String   @default("pomodoro") // pomodoro | freeform
+  durationS  Int      @map("duration_s")
+  startedAt  DateTime @map("started_at")
+  endedAt    DateTime @map("ended_at")
+  profile    Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  subject    Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+
+  @@index([profileId, startedAt])
+  @@map("study_sessions")
+}
+
+model CalendarEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  profileId String   @map("profile_id") @db.Uuid
+  title     String
+  kind      String   @default("event") // event | exam
+  startsAt  DateTime @map("starts_at")
+  endsAt    DateTime? @map("ends_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, startsAt])
+  @@map("calendar_events")
+}
+
+model Resource {
+  id        String   @id @default(uuid()) @db.Uuid
+  profileId String   @map("profile_id") @db.Uuid
+  title     String
+  url       String
+  type      String   @default("link")
+  createdAt DateTime @default(now()) @map("created_at")
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@map("resources")
+}
+
+model Achievement {
+  id          String            @id @default(uuid()) @db.Uuid
+  code        String            @unique
+  name        String
+  description String
+  xpReward    Int               @default(50) @map("xp_reward")
+  users       UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String      @id @default(uuid()) @db.Uuid
+  profileId     String      @map("profile_id") @db.Uuid
+  achievementId String      @map("achievement_id") @db.Uuid
+  unlockedAt    DateTime    @default(now()) @map("unlocked_at")
+  profile       Profile     @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, achievementId])
+  @@map("user_achievements")
+}

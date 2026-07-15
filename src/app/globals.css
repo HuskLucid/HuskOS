@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.9rem;
+
+    /* Light theme — warm paper, not stark white */
+    --background: 40 30% 98%;
+    --foreground: 240 10% 12%;
+    --surface: 0 0% 100%;
+    --surface-muted: 40 20% 96%;
+    --surface-elevated: 0 0% 100%;
+    --muted: 240 5% 90%;
+    --muted-foreground: 240 4% 46%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: var(--accent);
+
+    /* Accent — overridable at runtime via ThemeProvider */
+    --accent: 262 80% 60%;
+    --accent-foreground: 0 0% 100%;
+    --accent-soft: 262 80% 96%;
+
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 152 55% 45%;
+    --warning: 38 92% 55%;
+  }
+
+  .dark {
+    /* Dark theme — deep charcoal, Nothing-OS restraint */
+    --background: 240 8% 6%;
+    --foreground: 40 20% 96%;
+    --surface: 240 7% 9%;
+    --surface-muted: 240 6% 12%;
+    --surface-elevated: 240 6% 13%;
+    --muted: 240 5% 18%;
+    --muted-foreground: 240 5% 60%;
+    --border: 240 5% 16%;
+    --input: 240 5% 18%;
+
+    --accent-soft: 262 40% 18%;
+    --destructive: 0 62% 50%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    @apply bg-accent/25;
+  }
+
+  /* Refined scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-muted;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/40;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-surface/70 backdrop-blur-xl backdrop-saturate-150;
+  }
+  .card-elevated {
+    @apply rounded-2xl border border-border bg-surface-elevated shadow-soft;
+  }
+  .focus-ring {
+    @apply outline-none ring-offset-2 ring-offset-background focus-visible:ring-2 focus-visible:ring-ring;
+  }
+}
